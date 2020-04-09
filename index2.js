@@ -13,6 +13,7 @@ let r = 5;
 let padding = 50;
 
 let plotData = [];
+let colors = ["teal", "red"]
 
 d3.json('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json')
 .then( (data)=> { // get all data, do checks etc
@@ -43,7 +44,7 @@ console.log("MinMins=" + minMins + " maxMins="+maxMins);
 
 let xScale = d3.scaleLinear()
 //.domain([minYr, maxYr])
-              .domain([minYr -1, maxYr+1])
+              .domain([minYr, maxYr])
               .range([padding, w-padding])
               
 
@@ -54,6 +55,7 @@ let yScale = d3.scaleTime()
 
 
 let xAxis = d3.axisBottom(xScale)
+              .tickFormat(d3.format("d"))
 
 let yAxis = d3.axisLeft(yScale)
               .tickFormat(d3.timeFormat("%M:%S"))
@@ -74,26 +76,36 @@ var tooltip = d3.select('#main')
 
 
 
+svg.append("clipPath")
+   .attr("id", "chart-area")
+   .append("rect")
+   .attr("x", padding)
+   .attr("y", padding)
+   .attr("width", w-padding*3)
+   .attr("height", h-padding*2)
 
-
-let circle = svg.selectAll("circle")
+let circle = svg.append("g")
+                .attr("id", "circles")
+                .attr("clip-path", "url(#chart-area)")
+                .selectAll("circle")
                   .data(dataset)
                   .enter()
                   .append("circle")
+                  .attr("class", "dot")
                   .attr("cx", (d,i) => xScale(d.Year))
                   .attr("cy", (d,i) => yScale(minutes[i]))
                   .attr("r", 10)
                   .attr("fill", (d,i) => { return ( d.Doping.length === 0) ? "teal" : "red";} )
                   .attr("stroke", "black")
-                  .attr("class", "dots")
-                  .attr("data-xdata", (d,i) => d.Year)
-                  .attr("data-ydata", (d,i) => minutes[i])
+                  .attr("data-xvalue", (d,i) => d.Year)
+                  .attr("data-yvalue", (d,i) => minutes[i])
 				  .on("mouseover", (d,i) => {
 						tooltip.transition()
 							    .duration(20)
 								.style("opacity", 1)
-tooltip.html( d.Year + " - " + d.Time + "<br>" + d.Name + ', ' + d.Nationality + "<br>" + d.Doping )
+                        tooltip.html( d.Year + " - " + d.Time + "<br>" + d.Name + ', ' + d.Nationality + "<br>" + d.Doping )
 								.attr("data-date", d[0])
+                                .attr("data-year", d.Year)
 								.style("left", d3.event.pageX - 50 + 'px')
 								.style("top", d3.event.pageY - 20 + 'px')
 								.style("transform", "translateX(60px)");
@@ -102,6 +114,8 @@ tooltip.html( d.Year + " - " + d.Time + "<br>" + d.Name + ', ' + d.Nationality +
 						tooltip.transition()
 								.duration(100)
 								.style("opacity",0)
+                                .attr("data-year","")
+                                .attr("data-xvalue","")
 						});
 
 
@@ -125,9 +139,26 @@ svg.append("g")
 
 
 // add legend
+ var legend = svg.selectAll(".legend")
+    .data(colors)
+    .enter().append("g")
+    .attr("class", "legend")
+    .attr("id", "legend")
+    .attr("transform", function(d, i) {
+      return "translate(0," + (h/2 - i * 20) + ")";
+    });
 
-svg.append("text")
-   .attr("id", "legend")
+  legend.append("rect")
+    .attr("x", w-18)
+    .attr("width", 18)
+    .attr("height", 18)
+    .style("fill", (d,i) => colors[i]);
 
-
+  legend.append("text")
+    .attr("x", w- 24)
+    .attr("y", 9)
+    .attr("dy", ".35em")
+    .style("text-anchor", "end")
+    .text( (d,i) => i ? "Riders with doping allegations": "No doping allegations")
+      
 });
